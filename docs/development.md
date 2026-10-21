@@ -136,10 +136,24 @@ npm run dev
 The Vite development server proxies `/api` requests to the local API at
 `http://127.0.0.1:8000`. In the container setup, Nginx proxies the same path to
 the API service, so the browser does not need a separate API URL or CORS setup.
-The GUI loads quests with `GET /quests/` and creates them with `POST /quests/`.
-On startup, SQLAlchemy creates the new `quests` table. If you are reusing a
-database from the earlier user example, its `users` table is left untouched;
-there is no automatic conversion because user fields do not map to quest fields.
+The backend exposes `POST /guides/` to create a guide and `GET /guides/` or
+`GET /guides/{guide_id}` to read guides with their ordered quests. Create quests
+with `POST /quests/` using `guide_id`, `position`, `title`, and
+`completion_criteria`; `GET /quests/?guide_id=<id>` filters quests by guide.
+`description` remains optional for compatibility, and quest status remains
+available. A quest can include ordered `steps` when created, each with a
+`position`, `title`, and optional `description`; steps can also be managed
+through `POST`/`GET /quests/{quest_id}/steps/` and
+`PATCH`/`DELETE /quests/{quest_id}/steps/{step_id}`. Quest responses include
+their ordered steps.
+
+On a fresh database, SQLAlchemy creates the `guides`, `quests`, and
+`quest_steps` tables at startup. For an existing database, apply
+`backend/migrations/001_add_guides_and_quest_fields.sql` if it has not already
+been applied, then apply `backend/migrations/002_add_quest_steps.sql` once
+before restarting the API. Existing quests are placed in a new guide, in ID
+order, and their completion criteria are initialized from their descriptions
+(or titles when descriptions are empty).
 
 Stop the containers with:
 

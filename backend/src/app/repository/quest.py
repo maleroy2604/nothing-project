@@ -1,7 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.model.guide import Guide
 from src.app.model.quest import Quest
+from src.app.model.step import Step
 from src.app.schema.quest import QuestCreate, QuestUpdate
 
 
@@ -10,7 +12,11 @@ class QuestRepository:
         self.session = session
 
     async def create(self, data: QuestCreate) -> Quest:
-        quest = Quest(**data.model_dump())
+        quest_data = data.model_dump(exclude={"steps"})
+        quest = Quest(
+            **quest_data,
+            steps=[Step(**step.model_dump()) for step in data.steps],
+        )
         self.session.add(quest)
         await self.session.commit()
         await self.session.refresh(quest)
@@ -19,11 +25,17 @@ class QuestRepository:
     async def get(self, quest_id: int) -> Quest | None:
         return await self.session.get(Quest, quest_id)
 
-    async def list(self, offset: int = 0, limit: int = 100) -> list[Quest]:
-        result = await self.session.scalars(
-            select(Quest).order_by(Quest.id).offset(offset).limit(limit)
-        )
+    async def list(
+        self, offset: int = 0, limit: int = 100, guide_id: int | None = None
+    ) -> list[Quest]:
+        query = select(Quest).order_by(Quest.guide_id, Quest.position, Quest.id)
+        if guide_id is not None:
+            query = query.where(Quest.guide_id == guide_id)
+        result = await self.session.scalars(query.offset(offset).limit(limit))
         return list(result)
+
+    async def guide_exists(self, guide_id: int) -> bool:
+        return await self.session.get(Guide, guide_id) is not None
 
     async def update(self, quest: Quest, data: QuestUpdate) -> Quest:
         for field, value in data.model_dump(exclude_unset=True).items():

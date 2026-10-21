@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from src.app.model.base import Base
+from src.app.model import guide as _guide_model  # noqa: F401
 from src.app.model import quest as _quest_model  # noqa: F401
+from src.app.model import step as _step_model  # noqa: F401
 
 
 class Database:
