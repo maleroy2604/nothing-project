@@ -2,18 +2,15 @@ import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from sqlalchemy.engine import URL, make_url
+from alembic import command
+from alembic.config import Config
+from sqlalchemy.engine import Connection, URL, make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from src.app.model.base import Base
-from src.app.model import guide as _guide_model  # noqa: F401
-from src.app.model import quest as _quest_model  # noqa: F401
-from src.app.model import step as _step_model  # noqa: F401
 
 
 class Database:
@@ -32,7 +29,17 @@ class Database:
 
     async def start(self) -> None:
         async with self.engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all)
+            config = Config(
+                str(Path(__file__).resolve().parents[2] / "alembic.ini")
+            )
+            await connection.run_sync(
+                lambda sync_connection: self._upgrade(sync_connection, config)
+            )
+
+    @staticmethod
+    def _upgrade(connection: Connection, config: Config) -> None:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "head")
 
     async def stop(self) -> None:
         await self.engine.dispose()

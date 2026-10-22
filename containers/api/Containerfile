@@ -12,6 +12,8 @@ RUN uv sync --locked --no-install-project --no-dev
 
 # Copy application
 COPY backend/src ./backend/src
+COPY backend/alembic.ini ./backend/alembic.ini
+COPY backend/migrations ./backend/migrations
 
 # Keep the backend source root on the import path for the src package.
 ENV PYTHONPATH=/app/backend

@@ -147,13 +147,12 @@ through `POST`/`GET /quests/{quest_id}/steps/` and
 `PATCH`/`DELETE /quests/{quest_id}/steps/{step_id}`. Quest responses include
 their ordered steps.
 
-On a fresh database, SQLAlchemy creates the `guides`, `quests`, and
-`quest_steps` tables at startup. For an existing database, apply
-`backend/migrations/001_add_guides_and_quest_fields.sql` if it has not already
-been applied, then apply `backend/migrations/002_add_quest_steps.sql` once
-before restarting the API. Existing quests are placed in a new guide, in ID
-order, and their completion criteria are initialized from their descriptions
-(or titles when descriptions are empty).
+At startup, Alembic applies any pending migrations from `backend/migrations/`
+before the API begins serving requests. This creates the schema on a fresh
+database and upgrades an existing database; existing quests are placed in a
+new guide in ID order, and their completion criteria are initialized from
+their descriptions (or titles when descriptions are empty). Do not run the
+migration files manually.
 
 Stop the containers with:
 

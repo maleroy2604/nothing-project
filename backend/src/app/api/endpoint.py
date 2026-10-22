@@ -11,9 +11,11 @@ from src.app.database import database
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await database.start()
-    yield
-    await database.stop()
+    try:
+        await database.start()
+        yield
+    finally:
+        await database.stop()
 
 
 app = FastAPI(lifespan=lifespan)
