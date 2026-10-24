@@ -36,6 +36,7 @@ class Quest(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     completion_criteria: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    test_null_col: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="not_started"
     )

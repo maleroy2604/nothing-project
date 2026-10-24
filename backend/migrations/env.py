@@ -1,10 +1,11 @@
 import asyncio
 import os
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.app.model.base import Base
@@ -28,6 +29,16 @@ def database_url() -> str:
     url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
     if not url or url == "postgresql+asyncpg://":
         raise RuntimeError("Set DATABASE_URL before running Alembic.")
+
+    password_file = os.getenv("DATABASE_PASSWORD_FILE")
+    if password_file:
+        password = Path(password_file).read_text(encoding="utf-8").rstrip("\r\n")
+        if not password:
+            raise ValueError(f"Database password file is empty: {password_file}")
+        url = make_url(url).set(password=password).render_as_string(
+            hide_password=False
+        )
+
     return url
 
 
