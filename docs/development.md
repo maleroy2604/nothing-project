@@ -79,6 +79,9 @@ PostgreSQL must be running before the API starts because the application connect
 The AI service must be running for `/ai/chat`; in the local workflow it is
 available at `http://127.0.0.1:8090`. Set `OLLAMA_MODEL` in the environment to
 use another model you have pulled with Ollama.
+The API logs startup, shutdown, request method, path, status, and duration to
+the IDE or terminal console. Frontend API request logs are available in the
+browser developer console while Vite is running in development mode.
 
 ## Run the application in containers
 

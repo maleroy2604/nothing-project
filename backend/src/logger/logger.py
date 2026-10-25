@@ -1,5 +1,8 @@
 import logging
 from logging.config import dictConfig
+from pathlib import Path
+
+Path("logs").mkdir(parents=True, exist_ok=True)
 
 # Define logging configuration
 LOGGING_CONFIG = {
