@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1080" viewBox="0 0 1200 1080" role="img" aria-labelledby="title description">
+  <title id="title">Guidebook frontend flow</title>
+  <desc id="description">A flow diagram showing guide loading, quest selection and completion, step creation and navigation, progress storage, and the linked-guide API limitation.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#718096"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; }
+      .title { fill: #f3f5fa; font-size: 27px; font-weight: 700; }
+      .subtitle { fill: #aab5c5; font-size: 14px; }
+      .lane-title { fill: #c9d3e1; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; }
+      .node-title { fill: #202b3a; font-size: 14px; font-weight: 700; }
+      .node-detail { fill: #344154; font-size: 12px; }
+      .note-title { fill: #62491a; font-size: 13px; font-weight: 700; }
+      .note-detail { fill: #725b30; font-size: 12px; }
+      .edge { fill: none; stroke: #718096; stroke-width: 2; marker-end: url(#arrow); }
+      .edge-label { fill: #aab5c5; font-size: 11px; }
+      .panel { fill: #151e2b; stroke: #2b3748; stroke-width: 1; }
+      .blue { fill: #dae8fc; stroke: #6c8ebf; stroke-width: 1.5; }
+      .green { fill: #d5e8d4; stroke: #82b366; stroke-width: 1.5; }
+      .yellow { fill: #fff2cc; stroke: #d6b656; stroke-width: 1.5; }
+      .orange { fill: #ffe6cc; stroke: #d79b00; stroke-width: 1.5; }
+      .red { fill: #f8cecc; stroke: #b85450; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1080" fill="#111722"/>
+  <text x="48" y="48" class="title">Guidebook frontend flow</text>
+  <text x="48" y="75" class="subtitle">How the React UI loads guides, handles quests and steps, and tracks reading progress</text>
+
+  <rect x="35" y="102" width="1130" height="150" rx="15" class="panel"/>
+  <rect x="35" y="270" width="1130" height="230" rx="15" class="panel"/>
+  <rect x="35" y="518" width="1130" height="285" rx="15" class="panel"/>
+  <rect x="35" y="821" width="1130" height="220" rx="15" class="panel"/>
+  <text x="58" y="133" class="lane-title">1 · LOAD A GUIDE</text>
+  <text x="58" y="301" class="lane-title">2 · WORK WITH QUESTS</text>
+  <text x="58" y="549" class="lane-title">3 · READ AND ADD STEPS</text>
+  <text x="58" y="852" class="lane-title">4 · PROGRESS AND LIMITS</text>
+
+  <rect x="75" y="157" width="150" height="62" rx="10" class="blue"/>
+  <text x="150" y="183" text-anchor="middle" class="node-title">Open app</text>
+  <text x="150" y="202" text-anchor="middle" class="node-detail">React starts</text>
+
+  <rect x="285" y="157" width="190" height="62" rx="10" class="blue"/>
+  <text x="380" y="183" text-anchor="middle" class="node-title">GET /guides/</text>
+  <text x="380" y="202" text-anchor="middle" class="node-detail">Load up to 100 guides</text>
+
+  <polygon points="570,157 645,188 570,219 495,188" class="yellow"/>
+  <text x="570" y="193" text-anchor="middle" class="node-title">Loaded?</text>
+
+  <rect x="690" y="157" width="190" height="62" rx="10" class="green"/>
+  <text x="785" y="183" text-anchor="middle" class="node-title">Select a guide</text>
+  <text x="785" y="202" text-anchor="middle" class="node-detail">First guide by default</text>
+
+  <rect x="950" y="157" width="175" height="62" rx="10" class="red"/>
+  <text x="1037" y="183" text-anchor="middle" class="node-title">Show error</text>
+  <text x="1037" y="202" text-anchor="middle" class="node-detail">Retry by reloading</text>
+
+  <path d="M225 188 H285" class="edge"/>
+  <path d="M475 188 H495" class="edge"/>
+  <path d="M645 188 H690" class="edge"/>
+  <text x="665" y="177" class="edge-label">yes</text>
+  <path d="M645 188 H950" class="edge"/>
+  <text x="806" y="177" class="edge-label">no</text>
+
+  <rect x="730" y="325" width="215" height="67" rx="10" class="green"/>
+  <text x="837" y="351" text-anchor="middle" class="node-title">Guide and quest list</text>
+  <text x="837" y="372" text-anchor="middle" class="node-detail">Quests ordered by position</text>
+  <path d="M785 219 V290 H837 V325" class="edge"/>
+
+  <polygon points="837,410 922,445 837,480 752,445" class="yellow"/>
+  <text x="837" y="450" text-anchor="middle" class="node-title">Choose an action</text>
+  <path d="M837 392 V410" class="edge"/>
+
+  <rect x="100" y="412" width="185" height="67" rx="10" class="blue"/>
+  <text x="192" y="438" text-anchor="middle" class="node-title">Add a quest</text>
+  <text x="192" y="459" text-anchor="middle" class="node-detail">Enter title and details</text>
+
+  <rect x="340" y="412" width="210" height="67" rx="10" class="green"/>
+  <text x="445" y="438" text-anchor="middle" class="node-title">POST /quests/</text>
+  <text x="445" y="459" text-anchor="middle" class="node-detail">Includes guide ID + position</text>
+
+  <rect x="585" y="412" width="185" height="67" rx="10" class="blue"/>
+  <text x="677" y="438" text-anchor="middle" class="node-title">Open a quest</text>
+  <text x="677" y="459" text-anchor="middle" class="node-detail">Select from the list</text>
+
+  <rect x="980" y="412" width="145" height="67" rx="10" class="orange"/>
+  <text x="1052" y="438" text-anchor="middle" class="node-title">Check box</text>
+  <text x="1052" y="459" text-anchor="middle" class="node-detail">Mark completion</text>
+
+  <path d="M752 445 H550" class="edge"/>
+  <text x="635" y="434" class="edge-label">add</text>
+  <path d="M340 445 H285" class="edge"/>
+  <path d="M285 445 H315 V392 H730" class="edge"/>
+  <text x="294" y="433" class="edge-label">saved</text>
+  <path d="M752 445 H770" class="edge"/>
+  <text x="758" y="434" class="edge-label">open</text>
+  <path d="M922 445 H980" class="edge"/>
+  <text x="945" y="434" class="edge-label">complete</text>
+  <path d="M1052 412 V355 H945" class="edge"/>
+  <text x="1060" y="389" class="edge-label">PATCH status</text>
+
+  <rect x="95" y="587" width="205" height="70" rx="10" class="blue"/>
+  <text x="197" y="615" text-anchor="middle" class="node-title">Selected quest</text>
+  <text x="197" y="637" text-anchor="middle" class="node-detail">Show title and description</text>
+  <path d="M677 479 V555 H197 V587" class="edge"/>
+
+  <polygon points="405,587 485,622 405,657 325,622" class="yellow"/>
+  <text x="405" y="627" text-anchor="middle" class="node-title">Steps exist?</text>
+  <path d="M300 622 H325" class="edge"/>
+
+  <rect x="535" y="562" width="200" height="65" rx="10" class="green"/>
+  <text x="635" y="588" text-anchor="middle" class="node-title">Show current step</text>
+  <text x="635" y="609" text-anchor="middle" class="node-detail">Title and description</text>
+
+  <rect x="535" y="651" width="200" height="65" rx="10" class="orange"/>
+  <text x="635" y="677" text-anchor="middle" class="node-title">No steps yet</text>
+  <text x="635" y="698" text-anchor="middle" class="node-detail">Show completion criteria</text>
+
+  <rect x="835" y="651" width="205" height="65" rx="10" class="blue"/>
+  <text x="937" y="677" text-anchor="middle" class="node-title">Add a step</text>
+  <text x="937" y="698" text-anchor="middle" class="node-detail">Enter title and description</text>
+
+  <rect x="835" y="562" width="205" height="65" rx="10" class="green"/>
+  <text x="937" y="588" text-anchor="middle" class="node-title">POST quest step</text>
+  <text x="937" y="609" text-anchor="middle" class="node-detail">Position and quest ID</text>
+
+  <path d="M485 610 H535" class="edge"/>
+  <text x="500" y="600" class="edge-label">yes</text>
+  <path d="M485 635 H510 V683 H535" class="edge"/>
+  <text x="495" y="652" class="edge-label">no</text>
+  <path d="M735 683 H835" class="edge"/>
+  <path d="M937 651 V627" class="edge"/>
+  <path d="M835 594 H765 V562 H735" class="edge"/>
+
+  <rect x="95" y="704" width="205" height="65" rx="10" class="blue"/>
+  <text x="197" y="730" text-anchor="middle" class="node-title">Previous / next</text>
+  <text x="197" y="751" text-anchor="middle" class="node-detail">Move through this quest</text>
+  <path d="M635 627 V737 H300" class="edge"/>
+  <path d="M300 737 H785 V594 H835" class="edge"/>
+  <text x="510" y="726" class="edge-label">new step</text>
+
+  <rect x="95" y="891" width="250" height="91" rx="10" class="green"/>
+  <text x="220" y="919" text-anchor="middle" class="node-title">Browser local storage</text>
+  <text x="220" y="941" text-anchor="middle" class="node-detail">Remembers current step</text>
+  <text x="220" y="961" text-anchor="middle" class="node-detail">on this device / browser</text>
+
+  <rect x="415" y="891" width="270" height="91" rx="10" class="green"/>
+  <text x="550" y="919" text-anchor="middle" class="node-title">Green progress bar</text>
+  <text x="550" y="941" text-anchor="middle" class="node-detail">Current step / all guide steps</text>
+  <text x="550" y="961" text-anchor="middle" class="node-detail">Updates while you navigate</text>
+
+  <rect x="755" y="871" width="365" height="131" rx="10" class="orange"/>
+  <text x="937" y="899" text-anchor="middle" class="note-title">Linked guides are not wired yet</text>
+  <text x="937" y="923" text-anchor="middle" class="note-detail">The backend has no linked-guide reference field,</text>
+  <text x="937" y="944" text-anchor="middle" class="note-detail">so quests and steps cannot open another guide</text>
+  <text x="937" y="965" text-anchor="middle" class="note-detail">from a reference in their content.</text>
+
+  <path d="M197 769 V835 H220 V891" class="edge"/>
+  <text x="207" y="818" class="edge-label">save step index</text>
+  <path d="M300 737 H550 V891" class="edge"/>
+  <text x="418" y="759" class="edge-label">recalculate position</text>
+
+  <text x="48" y="1063" class="subtitle">Code map: frontend/src/App.tsx · frontend/src/types/quest.ts · frontend/src/services/api.ts · frontend/src/style.css</text>
+</svg>
