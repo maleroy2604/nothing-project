@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.12 or newer
+- Python 3.15 or newer
 - [uv](https://docs.astral.sh/uv/)
 - Ollama with a model downloaded locally
 - Podman with a running Podman machine
@@ -16,14 +16,17 @@ winget install --id=astral-sh.uv -e
 
 ## Install Python dependencies
 
-From the project root, sync the virtual environment from the committed lock file:
+From the project root, sync the backend virtual environment from its committed
+lock file:
 
 ```powershell
+Set-Location backend
 uv sync --locked
+Set-Location ..
 ```
 
-This root project contains the API dependencies. The AI service has its own
-project and lock file; to sync its dependencies for local development, run:
+The AI service has its own project and lock file; to sync its dependencies for
+local development, run:
 
 ```powershell
 Set-Location ai-service
@@ -70,7 +73,8 @@ Launch the API with automatic reload:
 
 ```powershell
 $env:AI_SERVICE_URL = "http://127.0.0.1:8090"
-uv run uvicorn src.app.api.endpoint:app --app-dir backend --reload
+Set-Location backend
+uv run uvicorn src.app.api.endpoint:app --reload
 ```
 
 The API is available at <http://127.0.0.1:8000>. Interactive API documentation is at <http://127.0.0.1:8000/docs>.

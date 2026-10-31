@@ -4,12 +4,14 @@ A FastAPI application backed by PostgreSQL and SQLAlchemy's async API.
 
 ## Quick start
 
-Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), and Podman with a running machine and Compose provider.
+Requirements: Python 3.15+, [uv](https://docs.astral.sh/uv/), and Podman with a running machine and Compose provider.
 
 Install dependencies and start PostgreSQL:
 
 ```powershell
+Set-Location backend
 uv sync --locked
+Set-Location ..
 podman machine start
 ollama pull llama3.2
 podman compose up -d postgres ai-service
@@ -20,7 +22,8 @@ Run the API locally:
 ```powershell
 $env:DATABASE_URL = "postgresql+asyncpg://appuser:apppassword@localhost:5432/nothing"
 $env:AI_SERVICE_URL = "http://127.0.0.1:8090"
-uv run uvicorn src.app.api.endpoint:app --app-dir backend --reload
+Set-Location backend
+uv run uvicorn src.app.api.endpoint:app --reload
 ```
 
 The API is available at <http://127.0.0.1:8000>; interactive API documentation is at <http://127.0.0.1:8000/docs>.

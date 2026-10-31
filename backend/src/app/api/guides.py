@@ -7,6 +7,7 @@ from src.app.database import database
 from src.app.repository.guide import GuideRepository
 from src.app.schema.guide import GuideCreate, GuideRead
 from src.app.service.guide import GuideNotFoundError, GuideService
+from src.logger.logger import logger
 
 router = APIRouter(prefix="/guides", tags=["guides"])
 
@@ -22,7 +23,9 @@ async def create_guide(
     _: GuideCreate,
     service: Annotated[GuideService, Depends(get_guide_service)],
 ) -> GuideRead:
-    return await service.create_guide()
+    guide = await service.create_guide()
+    logger.info("Guide created guide_id=%s", guide.id)
+    return guide
 
 
 @router.get("/", response_model=list[GuideRead])

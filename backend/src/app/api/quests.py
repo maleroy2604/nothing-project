@@ -11,6 +11,7 @@ from src.app.service.quest import (
     QuestNotFoundError,
     QuestService,
 )
+from src.logger.logger import logger
 
 router = APIRouter(prefix="/quests", tags=["quests"])
 
@@ -27,7 +28,13 @@ async def create_quest(
     service: Annotated[QuestService, Depends(get_quest_service)],
 ) -> QuestRead:
     try:
-        return await service.create_quest(data)
+        quest = await service.create_quest(data)
+        logger.info(
+            "Quest created quest_id=%s guide_id=%s",
+            quest.id,
+            quest.guide_id,
+        )
+        return quest
     except QuestGuideNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
@@ -64,7 +71,9 @@ async def update_quest(
     service: Annotated[QuestService, Depends(get_quest_service)],
 ) -> QuestRead:
     try:
-        return await service.update_quest(quest_id, data)
+        quest = await service.update_quest(quest_id, data)
+        logger.info("Quest updated quest_id=%s", quest.id)
+        return quest
     except QuestNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except QuestGuideNotFoundError as error:
@@ -80,6 +89,7 @@ async def delete_quest(
 ) -> Response:
     try:
         await service.delete_quest(quest_id)
+        logger.info("Quest deleted quest_id=%s", quest_id)
     except QuestNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)

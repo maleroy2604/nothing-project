@@ -11,6 +11,7 @@ from src.app.service.step import (
     StepQuestNotFoundError,
     StepService,
 )
+from src.logger.logger import logger
 
 router = APIRouter(prefix="/quests/{quest_id}/steps", tags=["steps"])
 
@@ -28,7 +29,13 @@ async def create_step(
     service: Annotated[StepService, Depends(get_step_service)],
 ) -> StepRead:
     try:
-        return await service.create_step(quest_id, data)
+        step = await service.create_step(quest_id, data)
+        logger.info(
+            "Step created step_id=%s quest_id=%s",
+            step.id,
+            quest_id,
+        )
+        return step
     except StepQuestNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
@@ -56,7 +63,13 @@ async def update_step(
     service: Annotated[StepService, Depends(get_step_service)],
 ) -> StepRead:
     try:
-        return await service.update_step(quest_id, step_id, data)
+        step = await service.update_step(quest_id, step_id, data)
+        logger.info(
+            "Step updated step_id=%s quest_id=%s",
+            step.id,
+            quest_id,
+        )
+        return step
     except StepNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
@@ -75,6 +88,11 @@ async def delete_step(
 ) -> Response:
     try:
         await service.delete_step(quest_id, step_id)
+        logger.info(
+            "Step deleted step_id=%s quest_id=%s",
+            step_id,
+            quest_id,
+        )
     except StepNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
