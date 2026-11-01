@@ -21,6 +21,7 @@ export interface Quest {
 
 export interface Guide {
   id: number;
+  title: string;
   quests: Quest[];
 }
 

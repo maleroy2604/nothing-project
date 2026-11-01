@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import AppHeader from "./components/AppHeader";
+import EditableTitle from "./components/EditableTitle";
 import GuideSidebar from "./components/GuideSidebar";
 import QuestPanel from "./components/QuestPanel";
 import QuestReader from "./components/QuestReader";
@@ -121,6 +122,51 @@ export default function App() {
     }
   }
 
+  async function updateGuideTitle(guide: Guide, title: string): Promise<boolean> {
+    setSavingContent(true);
+    setError(null);
+    try {
+      const updatedGuide = await apiRequest<Guide>(`/guides/${guide.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      setGuides((current) =>
+        current.map((item) => item.id === updatedGuide.id ? updatedGuide : item),
+      );
+      return true;
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to update guide name."));
+      return false;
+    } finally {
+      setSavingContent(false);
+    }
+  }
+
+  async function deleteGuide(guide: Guide) {
+    setSavingContent(true);
+    setError(null);
+    try {
+      await apiRequest<void>(`/guides/${guide.id}`, { method: "DELETE" });
+      setGuides((current) => current.filter((item) => item.id !== guide.id));
+      if (selectedGuideId === guide.id) {
+        setSelectedGuideId(guides.find((item) => item.id !== guide.id)?.id ?? null);
+        setSelectedQuestId(null);
+        setShowQuestForm(false);
+        setShowStepForm(false);
+      }
+      setStepPositions((current) => {
+        const next = { ...current };
+        guide.quests.forEach((quest) => delete next[quest.id]);
+        return next;
+      });
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to delete guide."));
+    } finally {
+      setSavingContent(false);
+    }
+  }
+
   async function updateQuestStatus(quest: Quest, checked: boolean) {
     const status: QuestStatus = checked ? "completed" : "not_started";
     setUpdatingQuestId(quest.id);
@@ -143,6 +189,61 @@ export default function App() {
       setError(getErrorMessage(requestError, "Unable to update quest status."));
     } finally {
       setUpdatingQuestId(null);
+    }
+  }
+
+  async function updateQuestTitle(quest: Quest, title: string): Promise<boolean> {
+    setSavingContent(true);
+    setError(null);
+    try {
+      const updatedQuest = await apiRequest<Quest>(`/quests/${quest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      setGuides((currentGuides) =>
+        currentGuides.map((guide) => ({
+          ...guide,
+          quests: guide.quests.map((item) =>
+            item.id === updatedQuest.id ? updatedQuest : item,
+          ),
+        })),
+      );
+      return true;
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to update quest name."));
+      return false;
+    } finally {
+      setSavingContent(false);
+    }
+  }
+
+  async function deleteQuest(quest: Quest) {
+    setSavingContent(true);
+    setError(null);
+    try {
+      await apiRequest<void>(`/quests/${quest.id}`, { method: "DELETE" });
+      const remainingQuests = quests.filter((item) => item.id !== quest.id);
+      setGuides((currentGuides) =>
+        currentGuides.map((guide) =>
+          guide.id === quest.guide_id
+            ? { ...guide, quests: guide.quests.filter((item) => item.id !== quest.id) }
+            : guide,
+        ),
+      );
+      if (selectedQuestId === quest.id) {
+        setSelectedQuestId(remainingQuests[0]?.id ?? null);
+        setShowStepForm(false);
+      }
+      setStepPositions((current) => {
+        const next = { ...current };
+        delete next[quest.id];
+        return next;
+      });
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to delete quest."));
+    } finally {
+      setSavingContent(false);
     }
   }
 
@@ -224,6 +325,72 @@ export default function App() {
     }
   }
 
+  async function updateStepTitle(step: Step, title: string): Promise<boolean> {
+    setSavingContent(true);
+    setError(null);
+    try {
+      const updatedStep = await apiRequest<Step>(
+        `/quests/${step.quest_id}/steps/${step.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        },
+      );
+      setGuides((currentGuides) =>
+        currentGuides.map((guide) => ({
+          ...guide,
+          quests: guide.quests.map((quest) => ({
+            ...quest,
+            steps: quest.steps.map((item) =>
+              item.id === updatedStep.id ? updatedStep : item,
+            ),
+          })),
+        })),
+      );
+      return true;
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to update step name."));
+      return false;
+    } finally {
+      setSavingContent(false);
+    }
+  }
+
+  async function deleteStep(step: Step) {
+    setSavingContent(true);
+    setError(null);
+    try {
+      await apiRequest<void>(
+        `/quests/${step.quest_id}/steps/${step.id}`,
+        { method: "DELETE" },
+      );
+      setGuides((currentGuides) =>
+        currentGuides.map((guide) => ({
+          ...guide,
+          quests: guide.quests.map((quest) =>
+            quest.id === step.quest_id
+              ? { ...quest, steps: quest.steps.filter((item) => item.id !== step.id) }
+              : quest,
+          ),
+        })),
+      );
+      if (selectedQuest?.id === step.quest_id) {
+        const oldIndex = selectedQuest.steps.findIndex((item) => item.id === step.id);
+        const currentIndex = stepPositions[step.quest_id] ?? 0;
+        const nextIndex = oldIndex < currentIndex ? currentIndex - 1 : currentIndex;
+        setStepPositions((current) => ({
+          ...current,
+          [step.quest_id]: Math.max(0, Math.min(nextIndex, selectedQuest.steps.length - 2)),
+        }));
+      }
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to delete step."));
+    } finally {
+      setSavingContent(false);
+    }
+  }
+
   function selectGuide(guideId: number) {
     setSelectedGuideId(guideId);
     setSelectedQuestId(null);
@@ -252,8 +419,11 @@ export default function App() {
           selectedGuideId={selectedGuideId}
           loading={loading}
           creatingGuide={creatingGuide}
+          savingContent={savingContent}
           onCreateGuide={() => void createGuide()}
           onSelectGuide={selectGuide}
+          onUpdateGuideTitle={updateGuideTitle}
+          onDeleteGuide={(guide) => void deleteGuide(guide)}
         />
 
         <section className="content">
@@ -288,7 +458,15 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <p className="eyebrow">YOUR ADVENTURE</p>
-                  <h2>Guide {selectedGuide.id}</h2>
+                  <h2>
+                    <EditableTitle
+                      className="page-title"
+                      title={selectedGuide.title}
+                      label={`guide ${selectedGuide.id}`}
+                      disabled={savingContent}
+                      onSave={(title) => updateGuideTitle(selectedGuide, title)}
+                    />
+                  </h2>
                   <p className="page-subtitle">
                     {quests.length === 0
                       ? "Your quests will appear here."
@@ -341,6 +519,8 @@ export default function App() {
                     void updateQuestStatus(quest, checked)
                   }
                   onSelectQuest={selectQuest}
+                  onUpdateQuestTitle={updateQuestTitle}
+                  onDeleteQuest={(quest) => void deleteQuest(quest)}
                 />
 
                 <QuestReader
@@ -357,6 +537,8 @@ export default function App() {
                   onStepTitleChange={setStepTitle}
                   onStepDescriptionChange={setStepDescription}
                   onCreateStep={(event) => void createStep(event)}
+                  onUpdateStepTitle={updateStepTitle}
+                  onDeleteStep={(step) => void deleteStep(step)}
                 />
               </div>
             </>

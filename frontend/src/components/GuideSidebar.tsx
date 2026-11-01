@@ -1,12 +1,16 @@
 import type { Guide } from "../types/quest";
+import EditableTitle from "./EditableTitle";
 
 interface GuideSidebarProps {
   guides: Guide[];
   selectedGuideId: number | null;
   loading: boolean;
   creatingGuide: boolean;
+  savingContent: boolean;
   onCreateGuide: () => void;
   onSelectGuide: (guideId: number) => void;
+  onUpdateGuideTitle: (guide: Guide, title: string) => Promise<boolean>;
+  onDeleteGuide: (guide: Guide) => void;
 }
 
 export default function GuideSidebar({
@@ -14,8 +18,11 @@ export default function GuideSidebar({
   selectedGuideId,
   loading,
   creatingGuide,
+  savingContent,
   onCreateGuide,
   onSelectGuide,
+  onUpdateGuideTitle,
+  onDeleteGuide,
 }: GuideSidebarProps) {
   return (
     <aside className="sidebar" aria-label="Guides">
@@ -29,7 +36,7 @@ export default function GuideSidebar({
           type="button"
           aria-label="Create guide"
           title="Create guide"
-          disabled={creatingGuide}
+          disabled={creatingGuide || savingContent}
           onClick={onCreateGuide}
         >
           +
@@ -53,16 +60,22 @@ export default function GuideSidebar({
       ) : (
         <nav className="guide-nav">
           {guides.map((guide) => (
-            <button
+            <div
               className={`guide-nav-item${guide.id === selectedGuideId ? " is-active" : ""}`}
               key={guide.id}
-              type="button"
-              onClick={() => onSelectGuide(guide.id)}
             >
               <span className="guide-nav-icon" aria-hidden="true">▤</span>
-              <span>Guide {guide.id}</span>
+              <EditableTitle
+                className="guide-nav-actions"
+                title={guide.title}
+                label={`guide ${guide.id}`}
+                disabled={creatingGuide}
+                onSelect={() => onSelectGuide(guide.id)}
+                onSave={(title) => onUpdateGuideTitle(guide, title)}
+                onDelete={() => onDeleteGuide(guide)}
+              />
               <span className="guide-count">{guide.quests.length}</span>
-            </button>
+            </div>
           ))}
         </nav>
       )}

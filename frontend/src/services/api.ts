@@ -17,6 +17,8 @@ export async function apiRequest<T>(
       );
     }
 
+    if (response.status === 204) return undefined as T;
+
     const data = (await response.json()) as T;
     if (import.meta.env.DEV) {
       console.info(

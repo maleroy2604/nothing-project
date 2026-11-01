@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.model.base import Base
@@ -13,6 +13,7 @@ class Guide(Base):
     __tablename__ = "guides"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     quests: Mapped[list["Quest"]] = relationship(
         back_populates="guide",
         cascade="all, delete-orphan",

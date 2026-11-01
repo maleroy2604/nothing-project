@@ -1,5 +1,6 @@
 import type { FormEventHandler } from "react";
 import type { Quest, Step } from "../types/quest";
+import EditableTitle from "./EditableTitle";
 
 interface QuestReaderProps {
   selectedQuest: Quest | null;
@@ -15,6 +16,8 @@ interface QuestReaderProps {
   onStepTitleChange: (value: string) => void;
   onStepDescriptionChange: (value: string) => void;
   onCreateStep: FormEventHandler<HTMLFormElement>;
+  onUpdateStepTitle: (step: Step, title: string) => Promise<boolean>;
+  onDeleteStep: (step: Step) => void;
 }
 
 export default function QuestReader({
@@ -31,6 +34,8 @@ export default function QuestReader({
   onStepTitleChange,
   onStepDescriptionChange,
   onCreateStep,
+  onUpdateStepTitle,
+  onDeleteStep,
 }: QuestReaderProps) {
   return (
     <section className="reader-panel" aria-live="polite">
@@ -64,7 +69,14 @@ export default function QuestReader({
                 </span>
               </div>
               <span className="step-number">{String(currentStepIndex + 1).padStart(2, "0")}</span>
-              <h4>{currentStep.title}</h4>
+              <EditableTitle
+                className="step-title"
+                title={currentStep.title}
+                label={`step ${currentStep.id}`}
+                disabled={savingContent}
+                onSave={(title) => onUpdateStepTitle(currentStep, title)}
+                onDelete={() => onDeleteStep(currentStep)}
+              />
               {currentStep.description && (
                 <p className="step-description">{currentStep.description}</p>
               )}

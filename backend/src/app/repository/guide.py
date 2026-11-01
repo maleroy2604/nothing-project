@@ -12,11 +12,23 @@ class GuideRepository:
     async def create(self) -> Guide:
         guide = Guide()
         self.session.add(guide)
+        await self.session.flush()
+        guide.title = f"Guide {guide.id}"
         await self.session.commit()
         created_guide = await self.get(guide.id)
         if created_guide is None:
             raise RuntimeError("Guide disappeared after it was created")
         return created_guide
+
+    async def update(self, guide: Guide, title: str) -> Guide:
+        guide.title = title
+        await self.session.commit()
+        await self.session.refresh(guide)
+        return guide
+
+    async def delete(self, guide: Guide) -> None:
+        await self.session.delete(guide)
+        await self.session.commit()
 
     async def get(self, guide_id: int) -> Guide | None:
         result = await self.session.scalars(

@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.database import database
 from src.app.repository.guide import GuideRepository
-from src.app.schema.guide import GuideCreate, GuideRead
+from src.app.schema.guide import GuideCreate, GuideRead, GuideUpdate
 from src.app.service.guide import GuideNotFoundError, GuideService
 from src.logger.logger import logger
 
@@ -48,3 +48,34 @@ async def get_guide(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
         ) from error
+
+
+@router.patch("/{guide_id}", response_model=GuideRead)
+async def update_guide(
+    guide_id: int,
+    data: GuideUpdate,
+    service: Annotated[GuideService, Depends(get_guide_service)],
+) -> GuideRead:
+    try:
+        guide = await service.update_guide(guide_id, data.title)
+        logger.info("Guide updated guide_id=%s", guide.id)
+        return guide
+    except GuideNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+        ) from error
+
+
+@router.delete("/{guide_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_guide(
+    guide_id: int,
+    service: Annotated[GuideService, Depends(get_guide_service)],
+) -> Response:
+    try:
+        await service.delete_guide(guide_id)
+        logger.info("Guide deleted guide_id=%s", guide_id)
+    except GuideNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+        ) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

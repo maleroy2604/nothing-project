@@ -1,5 +1,6 @@
 import type { FormEventHandler } from "react";
 import type { Quest } from "../types/quest";
+import EditableTitle from "./EditableTitle";
 
 interface QuestPanelProps {
   quests: Quest[];
@@ -17,6 +18,8 @@ interface QuestPanelProps {
   onCreateQuest: FormEventHandler<HTMLFormElement>;
   onUpdateQuestStatus: (quest: Quest, checked: boolean) => void;
   onSelectQuest: (questId: number) => void;
+  onUpdateQuestTitle: (quest: Quest, title: string) => Promise<boolean>;
+  onDeleteQuest: (quest: Quest) => void;
 }
 
 export default function QuestPanel({
@@ -35,6 +38,8 @@ export default function QuestPanel({
   onCreateQuest,
   onUpdateQuestStatus,
   onSelectQuest,
+  onUpdateQuestTitle,
+  onDeleteQuest,
 }: QuestPanelProps) {
   return (
     <section className="quest-panel" aria-labelledby="quest-list-heading">
@@ -107,20 +112,24 @@ export default function QuestPanel({
                     {isCompleted && "✓"}
                   </span>
                 </label>
-                <button
-                  type="button"
-                  className="quest-open"
-                  onClick={() => onSelectQuest(quest.id)}
-                >
+                <div className="quest-open">
                   <span className="quest-number">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="quest-copy">
-                    <span className="quest-title">{quest.title}</span>
+                  <div className="quest-copy">
+                    <EditableTitle
+                      className="quest-title"
+                      title={quest.title}
+                      label={`quest ${quest.id}`}
+                      disabled={savingContent}
+                      onSelect={() => onSelectQuest(quest.id)}
+                      onSave={(title) => onUpdateQuestTitle(quest, title)}
+                      onDelete={() => onDeleteQuest(quest)}
+                    />
                     <span className="quest-step-count">
                       {quest.steps.length} {quest.steps.length === 1 ? "step" : "steps"}
                     </span>
-                  </span>
+                  </div>
                   <span className="quest-chevron" aria-hidden="true">›</span>
-                </button>
+                </div>
               </li>
             );
           })}
