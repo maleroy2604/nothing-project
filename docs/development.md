@@ -123,6 +123,19 @@ containing `role` and `content` to request a chat completion, for example:
 }
 ```
 
+Use `POST /ai/guide-plan` with a topic to generate a structured learning guide.
+The response contains a title, description, learning objectives, difficulty,
+and 1–15 quests. Each quest has 2–5 objectives, 1–5 completion criteria,
+optional prerequisites, and an estimated duration of 1–100 hours. The AI
+service sends the `GuidePlan` JSON schema to Ollama as its structured-output
+format, and the API validates the returned JSON before responding:
+
+```json
+{
+  "topic": "Introduction to astronomy"
+}
+```
+
 Set `OLLAMA_MODEL` if you pulled a different model. `OLLAMA_BASE_URL` can be
 overridden if Ollama is running somewhere other than the host default.
 

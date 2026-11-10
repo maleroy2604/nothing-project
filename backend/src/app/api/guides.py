@@ -57,7 +57,11 @@ async def update_guide(
     service: Annotated[GuideService, Depends(get_guide_service)],
 ) -> GuideRead:
     try:
-        guide = await service.update_guide(guide_id, data.title)
+        guide = await service.update_guide(
+            guide_id,
+            title=data.title,
+            board_column=data.board_column,
+        )
         logger.info("Guide updated guide_id=%s", guide.id)
         return guide
     except GuideNotFoundError as error:

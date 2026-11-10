@@ -1,13 +1,31 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import AppHeader from "./components/AppHeader";
 import EditableTitle from "./components/EditableTitle";
+import GuideBoard from "./components/GuideBoard";
 import GuideSidebar from "./components/GuideSidebar";
 import QuestPanel from "./components/QuestPanel";
 import QuestReader from "./components/QuestReader";
 import { apiRequest } from "./services/api";
-import type { Guide, Quest, QuestStatus, Step } from "./types/quest";
+import type {
+  Guide,
+  GuideBoardColumn,
+  Quest,
+  QuestStatus,
+  Step,
+} from "./types/quest";
 
 const PROGRESS_STORAGE_KEY = "nothing-project-guide-progress";
+const THEME_STORAGE_KEY = "nothing-project-theme";
+
+type Theme = "dark" | "light";
+
+function readTheme(): Theme {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
 
 function readProgress(): Record<number, number> {
   try {
@@ -38,7 +56,9 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<Theme>(readTheme);
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [currentView, setCurrentView] = useState<"board" | "guide">("board");
   const [selectedGuideId, setSelectedGuideId] = useState<number | null>(null);
   const [selectedQuestId, setSelectedQuestId] = useState<number | null>(null);
   const [stepPositions, setStepPositions] = useState<Record<number, number>>(readProgress);
@@ -53,7 +73,19 @@ export default function App() {
   const [creatingGuide, setCreatingGuide] = useState(false);
   const [savingContent, setSavingContent] = useState(false);
   const [updatingQuestId, setUpdatingQuestId] = useState<number | null>(null);
+  const [updatingGuideIds, setUpdatingGuideIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // The selected theme remains active for this session if storage is unavailable.
+    }
+  }, [theme]);
 
   useEffect(() => {
     async function loadGuides() {
@@ -115,6 +147,7 @@ export default function App() {
       setGuides((current) => [...current, guide]);
       setSelectedGuideId(guide.id);
       setSelectedQuestId(null);
+      setCurrentView("guide");
     } catch (requestError) {
       setError(getErrorMessage(requestError, "Unable to create a guide."));
     } finally {
@@ -143,6 +176,30 @@ export default function App() {
     }
   }
 
+  async function moveGuide(guide: Guide, boardColumn: GuideBoardColumn) {
+    if (guide.board_column === boardColumn) return;
+    setUpdatingGuideIds((current) => new Set(current).add(guide.id));
+    setError(null);
+    try {
+      const updatedGuide = await apiRequest<Guide>(`/guides/${guide.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ board_column: boardColumn }),
+      });
+      setGuides((current) =>
+        current.map((item) => item.id === updatedGuide.id ? updatedGuide : item),
+      );
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Unable to move guide."));
+    } finally {
+      setUpdatingGuideIds((current) => {
+        const next = new Set(current);
+        next.delete(guide.id);
+        return next;
+      });
+    }
+  }
+
   async function deleteGuide(guide: Guide) {
     setSavingContent(true);
     setError(null);
@@ -150,7 +207,9 @@ export default function App() {
       await apiRequest<void>(`/guides/${guide.id}`, { method: "DELETE" });
       setGuides((current) => current.filter((item) => item.id !== guide.id));
       if (selectedGuideId === guide.id) {
-        setSelectedGuideId(guides.find((item) => item.id !== guide.id)?.id ?? null);
+        const nextGuideId = guides.find((item) => item.id !== guide.id)?.id ?? null;
+        setSelectedGuideId(nextGuideId);
+        if (nextGuideId === null) setCurrentView("board");
         setSelectedQuestId(null);
         setShowQuestForm(false);
         setShowStepForm(false);
@@ -394,6 +453,7 @@ export default function App() {
   function selectGuide(guideId: number) {
     setSelectedGuideId(guideId);
     setSelectedQuestId(null);
+    setCurrentView("guide");
   }
 
   function selectQuest(questId: number) {
@@ -411,7 +471,12 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AppHeader />
+      <AppHeader
+        theme={theme}
+        onToggleTheme={() =>
+          setTheme((current) => current === "dark" ? "light" : "dark")
+        }
+      />
 
       <div className="workspace">
         <GuideSidebar
@@ -438,25 +503,26 @@ export default function App() {
 
           {loading ? (
             <div className="center-state">Loading your guidebook…</div>
-          ) : !selectedGuide ? (
-            <div className="welcome-state">
-              <div className="welcome-icon" aria-hidden="true">✦</div>
-              <p className="eyebrow">WELCOME TO YOUR GUIDEBOOK</p>
-              <h2>Start a new adventure</h2>
-              <p>Create a guide to organize quests and follow every step.</p>
-              <button
-                className="primary-button"
-                type="button"
-                disabled={creatingGuide}
-                onClick={() => void createGuide()}
-              >
-                {creatingGuide ? "Creating…" : "Create a guide"}
-              </button>
-            </div>
+          ) : currentView === "board" || !selectedGuide ? (
+            <GuideBoard
+              guides={guides}
+              updatingGuideIds={updatingGuideIds}
+              creatingGuide={creatingGuide}
+              onCreateGuide={() => void createGuide()}
+              onMoveGuide={(guide, column) => void moveGuide(guide, column)}
+              onOpenGuide={selectGuide}
+            />
           ) : (
             <>
               <div className="page-heading">
                 <div>
+                  <button
+                    className="board-back-button"
+                    type="button"
+                    onClick={() => setCurrentView("board")}
+                  >
+                    ← Board
+                  </button>
                   <p className="eyebrow">YOUR ADVENTURE</p>
                   <h2>
                     <EditableTitle

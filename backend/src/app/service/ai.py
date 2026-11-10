@@ -1,8 +1,53 @@
 import os
 
 import httpx
+from pydantic import ValidationError
 
 from src.app.schema.ai import ChatRequest, ChatResponse
+from src.app.schema.guide_plan import GuidePlan
+
+SYSTEM_PROMPT = """
+You are a professional technical learning architect.
+
+Your task is to design structured, progressive and
+practical learning guides.
+
+GUIDE DESIGN RULES:
+
+1. Analyse the requested topic and identify its
+   fundamental knowledge domains.
+
+2. Determine the appropriate number of quests.
+   The number must depend on topic complexity.
+   Do not use a fixed number.
+
+3. Organise quests in a logical progression.
+   Each quest must build on previous knowledge.
+
+4. Avoid unnecessary fragmentation and overlapping
+   quests.
+
+5. Each quest must have:
+   - A clear title.
+   - A practical description.
+   - 2 to 5 measurable learning objectives.
+   - Verifiable completion criteria.
+   - Estimated learning hours.
+   - Prerequisites when applicable.
+
+6. Completion criteria must demonstrate practical
+   competence, not simply time spent watching videos.
+
+7. Prefer exercises, implementations, experiments,
+   debugging and practical projects.
+
+8. Do not assume the learner is an expert.
+   Establish reasonable prerequisites.
+
+9. Do not invent certifications or mandatory courses.
+
+10. Return only JSON matching the supplied schema.
+"""
 
 
 class AIServiceError(Exception):
@@ -20,7 +65,7 @@ class AIService:
             async with httpx.AsyncClient(base_url=self.base_url, timeout=310.0) as client:
                 response = await client.post(
                     "/chat",
-                    json={"messages": [message.model_dump() for message in request.messages]},
+                    json=request.model_dump(exclude_none=True),
                 )
                 response.raise_for_status()
         except httpx.TimeoutException as error:
@@ -34,3 +79,23 @@ class AIService:
             return ChatResponse.model_validate(response.json())
         except ValueError as error:
             raise AIServiceError("AI service returned an invalid response", 502) from error
+
+    async def generate_guide_plan(self, topic: str) -> GuidePlan:
+        request = ChatRequest(
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": f"Create a learning guide about: {topic}",
+                },
+            ],
+            format=GuidePlan.model_json_schema(),
+        )
+        response = await self.chat(request)
+        try:
+            return GuidePlan.model_validate_json(response.response)
+        except ValidationError as error:
+            raise AIServiceError("AI service returned an invalid guide plan", 502) from error

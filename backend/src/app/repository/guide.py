@@ -20,8 +20,16 @@ class GuideRepository:
             raise RuntimeError("Guide disappeared after it was created")
         return created_guide
 
-    async def update(self, guide: Guide, title: str) -> Guide:
-        guide.title = title
+    async def update(
+        self,
+        guide: Guide,
+        title: str | None = None,
+        board_column: str | None = None,
+    ) -> Guide:
+        if title is not None:
+            guide.title = title
+        if board_column is not None:
+            guide.board_column = board_column
         await self.session.commit()
         await self.session.refresh(guide)
         return guide

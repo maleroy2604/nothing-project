@@ -19,9 +19,14 @@ class GuideService:
             raise GuideNotFoundError(f"Guide {guide_id} was not found")
         return guide
 
-    async def update_guide(self, guide_id: int, title: str) -> Guide:
+    async def update_guide(
+        self,
+        guide_id: int,
+        title: str | None = None,
+        board_column: str | None = None,
+    ) -> Guide:
         guide = await self.get_guide(guide_id)
-        return await self.repository.update(guide, title)
+        return await self.repository.update(guide, title, board_column)
 
     async def delete_guide(self, guide_id: int) -> None:
         guide = await self.get_guide(guide_id)

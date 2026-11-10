@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, status
@@ -14,6 +14,8 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1)
+    format: str | dict[str, Any] | None = None
+    options: dict[str, Any] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -45,14 +47,16 @@ async def health() -> dict[str, str]:
 async def chat(data: ChatRequest, request: Request) -> ChatResponse:
     client: httpx.AsyncClient = request.app.state.ollama_client
     try:
-        response = await client.post(
-            "/api/chat",
-            json={
-                "model": os.getenv("OLLAMA_MODEL", "llama3.2"),
-                "messages": [message.model_dump() for message in data.messages],
-                "stream": False,
-            },
-        )
+        payload: dict[str, Any] = {
+            "model": os.getenv("OLLAMA_MODEL", "llama3.2"),
+            "messages": [message.model_dump() for message in data.messages],
+            "stream": False,
+        }
+        if data.format is not None:
+            payload["format"] = data.format
+        if data.options is not None:
+            payload["options"] = data.options
+        response = await client.post("/api/chat", json=payload)
         response.raise_for_status()
     except httpx.TimeoutException as error:
         raise HTTPException(

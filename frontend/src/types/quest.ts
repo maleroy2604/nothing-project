@@ -1,4 +1,5 @@
 export type QuestStatus = "not_started" | "in_progress" | "completed";
+export type GuideBoardColumn = "backlog" | "daily" | "weekly" | "in_progress";
 
 export interface Step {
   id: number;
@@ -22,6 +23,7 @@ export interface Quest {
 export interface Guide {
   id: number;
   title: string;
+  board_column: GuideBoardColumn;
   quests: Quest[];
 }
 
