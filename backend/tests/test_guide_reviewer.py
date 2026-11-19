@@ -14,6 +14,7 @@ from src.app.service.guide_reviewer import (
     CRITERION_WEIGHTS,
     GuideReviewValidationFailure,
     GuideReviewer,
+    REVIEW_MAX_COMPLETION_TOKENS,
 )
 
 
@@ -107,7 +108,14 @@ class GuideReviewerTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(review.approved)
         self.assertEqual(len(review.criteria), 6)
         chat_request = self.ai_service.chat.await_args.args[0]
-        self.assertEqual(chat_request.options, {"temperature": 0.0, "seed": 42})
+        self.assertEqual(
+            chat_request.options,
+            {
+                "temperature": 0.0,
+                "seed": 42,
+                "max_completion_tokens": REVIEW_MAX_COMPLETION_TOKENS,
+            },
+        )
         self.assertEqual(chat_request.messages[0].role, "system")
         self.assertEqual(chat_request.messages[1].role, "user")
         self.assertIn("Teach Python basics.", chat_request.messages[1].content)

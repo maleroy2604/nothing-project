@@ -1,3 +1,4 @@
+import logging
 import os
 
 import httpx
@@ -5,6 +6,8 @@ from pydantic import ValidationError
 
 from src.app.schema.ai import ChatRequest, ChatResponse
 from src.app.schema.guide_plan import GuidePlan
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
 You are a professional technical learning architect.
@@ -71,7 +74,23 @@ class AIService:
         except httpx.TimeoutException as error:
             raise AIServiceError("AI service request timed out", 504) from error
         except httpx.HTTPStatusError as error:
-            raise AIServiceError("AI service returned an error", 502) from error
+            message = f"AI service returned HTTP {error.response.status_code}"
+            try:
+                payload = error.response.json()
+            except ValueError:
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and isinstance(payload.get("detail"), str)
+                and payload["detail"]
+            ):
+                message += f": {payload['detail']}"
+            status_code = (
+                error.response.status_code
+                if error.response.status_code in (429, 503, 504)
+                else 502
+            )
+            raise AIServiceError(message, status_code) from error
         except httpx.RequestError as error:
             raise AIServiceError("AI service is unavailable", 502) from error
 
@@ -80,22 +99,71 @@ class AIService:
         except ValueError as error:
             raise AIServiceError("AI service returned an invalid response", 502) from error
 
-    async def generate_guide_plan(self, topic: str) -> GuidePlan:
-        request = ChatRequest(
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": f"Create a learning guide about: {topic}",
-                },
-            ],
-            format=GuidePlan.model_json_schema(),
-        )
-        response = await self.chat(request)
-        try:
-            return GuidePlan.model_validate_json(response.response)
-        except ValidationError as error:
-            raise AIServiceError("AI service returned an invalid guide plan", 502) from error
+    async def generate_guide_plan(
+        self,
+        topic: str,
+        review_feedback: str | None = None,
+        previous_plan: GuidePlan | None = None,
+    ) -> GuidePlan:
+        user_content = f"Create a learning guide about: {topic}"
+        if review_feedback is not None and previous_plan is not None:
+            user_content += (
+                "\n\nRevise the previous guide to address this reviewer feedback. "
+                "Keep sound material, correct the identified issues, and return "
+                "the complete revised guide.\n\n"
+                f"Previous guide:\n{previous_plan.model_dump_json(indent=2)}\n\n"
+                f"Reviewer feedback:\n{review_feedback}"
+            )
+
+        previous_response: str | None = None
+        validation_errors: list[dict[str, object]] | None = None
+        for attempt in range(2):
+            attempt_content = user_content
+            if previous_response is not None and validation_errors is not None:
+                attempt_content += (
+                    "\n\nYour previous response failed validation. Correct it and "
+                    "return the complete guide as valid JSON only.\n\n"
+                    f"Validation errors:\n{validation_errors}\n\n"
+                    f"Previous response:\n{previous_response}"
+                )
+
+            request = ChatRequest(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": SYSTEM_PROMPT,
+                    },
+                    {
+                        "role": "user",
+                        "content": attempt_content,
+                    },
+                ],
+                format=GuidePlan.model_json_schema(),
+                options={"max_completion_tokens": 8192},
+            )
+            response = await self.chat(request)
+            previous_response = response.response
+            try:
+                return GuidePlan.model_validate_json(response.response)
+            except ValidationError as error:
+                validation_errors = error.errors(include_url=False)
+                logger.warning(
+                    "AI service returned an invalid guide plan "
+                    "attempt=%s validation_errors=%s response=%r",
+                    attempt + 1,
+                    validation_errors,
+                    response.response,
+                )
+                if attempt == 1:
+                    summary = "; ".join(
+                        f"{'.'.join(str(part) for part in issue['loc'])}: "
+                        f"{issue['msg']}"
+                        for issue in validation_errors
+                    )
+                    raise AIServiceError(
+                        f"AI service returned an invalid guide plan after retry: "
+                        f"{summary}",
+                        502,
+                    ) from error
+
+        raise RuntimeError("Guide plan validation retry completed unexpectedly")

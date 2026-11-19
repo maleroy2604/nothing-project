@@ -1,5 +1,6 @@
 from src.app.model.guide import Guide
 from src.app.repository.guide import GuideRepository
+from src.app.schema.guide_plan import GuidePlan
 
 
 class GuideNotFoundError(Exception):
@@ -12,6 +13,9 @@ class GuideService:
 
     async def create_guide(self) -> Guide:
         return await self.repository.create()
+
+    async def create_generated_guide(self, title: str, plan: GuidePlan) -> Guide:
+        return await self.repository.create_generated(title, plan)
 
     async def get_guide(self, guide_id: int) -> Guide:
         guide = await self.repository.get(guide_id)

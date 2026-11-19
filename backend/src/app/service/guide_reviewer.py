@@ -23,6 +23,7 @@ CRITERION_WEIGHTS = {
 }
 REVIEW_TEMPERATURE = 0.0
 REVIEW_SEED = 42
+REVIEW_MAX_COMPLETION_TOKENS = 8192
 DEFAULT_MINIMUM_SCORE = 80
 DEFAULT_MINIMUM_CRITERION_SCORE = 3
 
@@ -65,7 +66,11 @@ class GuideReviewer:
                 },
             ],
             format=GuideReviewAssessment.model_json_schema(),
-            options={"temperature": REVIEW_TEMPERATURE, "seed": REVIEW_SEED},
+            options={
+                "temperature": REVIEW_TEMPERATURE,
+                "seed": REVIEW_SEED,
+                "max_completion_tokens": REVIEW_MAX_COMPLETION_TOKENS,
+            },
         )
         response = await self.ai_service.chat(request)
         try:

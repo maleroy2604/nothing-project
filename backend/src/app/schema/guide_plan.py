@@ -1,12 +1,14 @@
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 
 
 class QuestPlan(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
 
     description: str
 
-    objectives: list[str] = Field(
+    objectives: list[Annotated[str, Field(min_length=1, max_length=200)]] = Field(
         min_length=2,
         max_length=5,
     )

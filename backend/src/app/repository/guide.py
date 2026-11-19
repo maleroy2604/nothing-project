@@ -3,6 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.app.model.guide import Guide
+from src.app.model.quest import Quest
+from src.app.model.step import Step
+from src.app.schema.guide_plan import GuidePlan
+from src.app.service.guide_plan_mapper import quest_description
 
 
 class GuideRepository:
@@ -14,6 +18,34 @@ class GuideRepository:
         self.session.add(guide)
         await self.session.flush()
         guide.title = f"Guide {guide.id}"
+        await self.session.commit()
+        created_guide = await self.get(guide.id)
+        if created_guide is None:
+            raise RuntimeError("Guide disappeared after it was created")
+        return created_guide
+
+    async def create_generated(self, title: str, plan: GuidePlan) -> Guide:
+        guide = Guide(
+            title=title,
+            quests=[
+                Quest(
+                    position=quest_index + 1,
+                    title=quest.title,
+                    description=quest_description(plan, quest_index),
+                    completion_criteria="\n".join(quest.completion_criteria),
+                    steps=[
+                        Step(
+                            position=step_index + 1,
+                            title=f"Objective {step_index + 1}",
+                            description=objective,
+                        )
+                        for step_index, objective in enumerate(quest.objectives)
+                    ],
+                )
+                for quest_index, quest in enumerate(plan.quests)
+            ],
+        )
+        self.session.add(guide)
         await self.session.commit()
         created_guide = await self.get(guide.id)
         if created_guide is None:
