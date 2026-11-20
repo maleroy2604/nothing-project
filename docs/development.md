@@ -4,7 +4,7 @@
 
 - Python 3.15 or newer
 - [uv](https://docs.astral.sh/uv/)
-- Ollama with a model downloaded locally
+- A [Groq API key](https://console.groq.com/keys)
 - Podman with a running Podman machine
 - A Compose provider configured for `podman compose`
 
@@ -37,12 +37,32 @@ Set-Location ..
 Run `uv lock` in the corresponding project directory after changing that
 service's dependencies, then commit the updated lock file.
 
-## Run the API locally with PostgreSQL in Podman
+## Run the API and frontend locally with PostgreSQL and AI service in Podman
 
 Start the Podman machine. If you have not created one yet, initialize it once with `podman machine init`, then start it:
 
 ```powershell
 podman machine start
+```
+
+Create `ai-service\.env` and add your Groq API key. Compose loads this file
+into the AI service container. The file is git-ignored; do not commit or share
+it:
+
+```text
+GROQ_API_KEY=your_groq_api_key
+```
+
+The local API and frontend configurations are ignored by Git. If they do not
+exist yet, create them from their committed examples:
+
+```powershell
+if (-not (Test-Path backend\.env.local)) {
+    Copy-Item backend\.env.local.example backend\.env.local
+}
+if (-not (Test-Path frontend\.env.local)) {
+    Copy-Item frontend\.env.local.example frontend\.env.local
+}
 ```
 
 The Compose database password is read from the ignored file
@@ -56,10 +76,9 @@ if (-not (Test-Path secrets\postgres_password)) {
 }
 ```
 
-Download the default model and start PostgreSQL plus the AI service:
+Start PostgreSQL plus the AI service:
 
 ```powershell
-ollama pull llama3.2
 podman compose up -d postgres ai-service
 ```
 
@@ -74,28 +93,45 @@ Launch the API with automatic reload:
 ```powershell
 $env:AI_SERVICE_URL = "http://127.0.0.1:8090"
 Set-Location backend
-uv run uvicorn src.app.api.endpoint:app --reload
+uv run uvicorn src.app.api.endpoint:app --reload --env-file .env.local
 ```
 
 The API is available at <http://127.0.0.1:8000>. Interactive API documentation is at <http://127.0.0.1:8000/docs>.
 
+In a second terminal, start the frontend:
+
+```powershell
+Set-Location frontend
+npm run dev
+```
+
+Open the Vite URL printed in the terminal (normally
+<http://localhost:5173>). The frontend proxies `/api` requests to the local
+API. Change `VITE_API_PROXY_TARGET` in `frontend/.env.local` if the API runs at
+a different address.
+
+### Start the API with the PyCharm debugger
+
+Open the project in PyCharm and select the shared **API (Debug)** run
+configuration. It uses `backend/.venv/Scripts/python.exe`, runs Uvicorn from
+`backend/`, and loads `backend/.env.local`. Start it with **Debug** (the
+bug icon), not **Run**; `--reload` is intentionally omitted so breakpoints
+attach to the API process. Set breakpoints in `backend/src/`, then start the
+PostgreSQL and AI-service containers as described above before debugging.
+
 PostgreSQL must be running before the API starts because the application connects to the database during startup. If the API reports that it cannot connect to port 5432, check that the Podman machine and PostgreSQL container are running.
 The AI service must be running for `/ai/chat`; in the local workflow it is
-available at `http://127.0.0.1:8090`. Set `OLLAMA_MODEL` in the environment to
-use another model you have pulled with Ollama.
+available at `http://127.0.0.1:8090`. Set `GROQ_MODEL` in `.env` to select
+another model available to your Groq account.
 The API logs startup, shutdown, request method, path, status, and duration to
 the IDE or terminal console. Frontend API request logs are available in the
 browser developer console while Vite is running in development mode.
 
 ## Run the application in containers
 
-Install Ollama on the host and pull the model you want to use:
-
-```powershell
-ollama pull llama3.2
-```
-
-Build and start the API, AI service, database, and frontend:
+Build and start the API, AI service, database, and frontend. Ensure
+`ai-service\.env` contains `GROQ_API_KEY` and `secrets/postgres_password`
+exists:
 
 ```powershell
 podman compose up --build
@@ -108,8 +144,10 @@ password stored by PostgreSQL. Update the database role password to match the
 secret before restarting the API.
 
 The API connects to PostgreSQL and the AI service using their Compose service
-hostnames. The AI service calls Ollama on the host at
-`host.containers.internal:11434`. Set `OLLAMA_MODEL` to use a different model.
+hostnames. The AI service calls Groq Cloud using `GROQ_API_KEY`. The default
+model is `openai/gpt-oss-20b`; set `GROQ_MODEL` in `.env` to select another
+model available to your account. Set `GROQ_TIMEOUT_SECONDS` to adjust the
+upstream request timeout (default 180 seconds).
 The API is available at <http://localhost:8080>, with interactive API
 documentation at <http://localhost:8080/docs>. The React frontend is available
 at <http://localhost:3000>. Use `POST /ai/chat` with a `messages` array
@@ -127,7 +165,7 @@ Use `POST /ai/guide-plan` with a topic to generate a structured learning guide.
 The response contains a title, description, learning objectives, difficulty,
 and 1–15 quests. Each quest has 2–5 objectives, 1–5 completion criteria,
 optional prerequisites, and an estimated duration of 1–100 hours. The AI
-service sends the `GuidePlan` JSON schema to Ollama as its structured-output
+service sends the `GuidePlan` JSON schema to Groq as its structured output
 format, and the API validates the returned JSON before responding:
 
 ```json
@@ -135,10 +173,6 @@ format, and the API validates the returned JSON before responding:
   "topic": "Introduction to astronomy"
 }
 ```
-
-Set `OLLAMA_MODEL` if you pulled a different model. `OLLAMA_BASE_URL` can be
-overridden if Ollama is running somewhere other than the host default.
-
 
 To run only the frontend container:
 

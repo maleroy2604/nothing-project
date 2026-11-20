@@ -31,11 +31,13 @@ services:
     build:
       context: .
       dockerfile: containers/ai/Containerfile
+    env_file:
+      - ./ai-service/.env
     ports:
       - "127.0.0.1:8090:8090"
     environment:
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://172.31.16.1:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
+      GROQ_TIMEOUT_SECONDS: ${GROQ_TIMEOUT_SECONDS:-180}
 
   postgres:
     build:

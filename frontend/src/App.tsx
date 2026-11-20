@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import AppHeader from "./components/AppHeader";
 import EditableTitle from "./components/EditableTitle";
+import GuideCreateDialog from "./components/GuideCreateDialog";
 import GuideBoard from "./components/GuideBoard";
 import GuideSidebar from "./components/GuideSidebar";
 import QuestPanel from "./components/QuestPanel";
@@ -71,6 +72,7 @@ export default function App() {
   const [stepDescription, setStepDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [creatingGuide, setCreatingGuide] = useState(false);
+  const [showGuideForm, setShowGuideForm] = useState(false);
   const [savingContent, setSavingContent] = useState(false);
   const [updatingQuestId, setUpdatingQuestId] = useState<number | null>(null);
   const [updatingGuideIds, setUpdatingGuideIds] = useState<Set<number>>(
@@ -135,21 +137,24 @@ export default function App() {
       ? ((globalStepIndex + 1) / allSteps.length) * 100
       : 0;
 
-  async function createGuide() {
+  async function createGuide(title: string): Promise<boolean> {
     setCreatingGuide(true);
     setError(null);
     try {
-      const guide = await apiRequest<Guide>("/guides/", {
+      const guide = await apiRequest<Guide>("/guides/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ title }),
       });
       setGuides((current) => [...current, guide]);
       setSelectedGuideId(guide.id);
       setSelectedQuestId(null);
       setCurrentView("guide");
+      setShowGuideForm(false);
+      return true;
     } catch (requestError) {
       setError(getErrorMessage(requestError, "Unable to create a guide."));
+      return false;
     } finally {
       setCreatingGuide(false);
     }
@@ -478,6 +483,18 @@ export default function App() {
         }
       />
 
+      {showGuideForm && (
+        <GuideCreateDialog
+          creating={creatingGuide}
+          error={error}
+          onClose={() => {
+            setShowGuideForm(false);
+            setError(null);
+          }}
+          onSubmit={createGuide}
+        />
+      )}
+
       <div className="workspace">
         <GuideSidebar
           guides={guides}
@@ -485,14 +502,17 @@ export default function App() {
           loading={loading}
           creatingGuide={creatingGuide}
           savingContent={savingContent}
-          onCreateGuide={() => void createGuide()}
+          onCreateGuide={() => {
+            setError(null);
+            setShowGuideForm(true);
+          }}
           onSelectGuide={selectGuide}
           onUpdateGuideTitle={updateGuideTitle}
           onDeleteGuide={(guide) => void deleteGuide(guide)}
         />
 
         <section className="content">
-          {error && (
+          {error && !showGuideForm && (
             <div className="error-banner" role="alert">
               {error}
               <button type="button" aria-label="Dismiss error" onClick={() => setError(null)}>
@@ -508,7 +528,10 @@ export default function App() {
               guides={guides}
               updatingGuideIds={updatingGuideIds}
               creatingGuide={creatingGuide}
-              onCreateGuide={() => void createGuide()}
+              onCreateGuide={() => {
+                setError(null);
+                setShowGuideForm(true);
+              }}
               onMoveGuide={(guide, column) => void moveGuide(guide, column)}
               onOpenGuide={selectGuide}
             />

@@ -11,7 +11,35 @@ export async function apiRequest<T>(
     statusCode = response.status;
 
     if (!response.ok) {
-      const detail = await response.text();
+      const body = await response.text();
+      let detail = body;
+      try {
+        const parsed: unknown = JSON.parse(body);
+        if (parsed && typeof parsed === "object" && "detail" in parsed) {
+          const apiDetail = parsed.detail;
+          if (typeof apiDetail === "string") {
+            detail = apiDetail;
+          } else if (
+            apiDetail &&
+            typeof apiDetail === "object" &&
+            "message" in apiDetail &&
+            typeof apiDetail.message === "string"
+          ) {
+            detail = apiDetail.message;
+          } else if (Array.isArray(apiDetail)) {
+            detail = apiDetail
+              .map((item) =>
+                item && typeof item === "object" && "msg" in item
+                  ? String(item.msg)
+                  : "",
+              )
+              .filter(Boolean)
+              .join("; ");
+          }
+        }
+      } catch {
+        // Keep the response body as-is when the server does not return JSON.
+      }
       throw new Error(
         detail || `API request failed: ${response.status} ${response.statusText}`,
       );

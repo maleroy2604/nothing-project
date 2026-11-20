@@ -124,6 +124,7 @@ select:focus-visible {
 }
 
 .sidebar {
+  min-width: 0;
   padding: 30px 16px;
   border-right: 1px solid var(--border);
   background: rgb(18 25 36 / 62%);
@@ -194,6 +195,8 @@ button:disabled {
 
 .guide-nav {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
 }
 
@@ -202,6 +205,7 @@ button:disabled {
   align-items: center;
   gap: 11px;
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 0 11px;
   border: 1px solid transparent;
@@ -1131,6 +1135,89 @@ button.editable-title-display {
   transform: translateY(-1px);
 }
 
+.secondary-button {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.guide-create-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(7 11 18 / 72%);
+  backdrop-filter: blur(4px);
+}
+
+.guide-create-dialog {
+  display: grid;
+  width: min(100%, 460px);
+  gap: 12px;
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.guide-create-heading h2 {
+  margin: 0 0 8px;
+  font-family: Manrope, sans-serif;
+  font-size: 20px;
+}
+
+.guide-create-heading > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.guide-create-label {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.guide-create-input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.guide-create-input::placeholder {
+  color: var(--muted);
+}
+
+.guide-create-error {
+  margin: 0;
+  color: #ffb5b7;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.guide-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 7px;
+}
+
 .center-state {
   color: #aab5c5;
 }
@@ -1405,6 +1492,22 @@ button.editable-title-display {
   color: #9c3d40;
 }
 
+:root[data-theme="light"] .guide-create-dialog {
+  border-color: #dce5dd;
+  background: #fff;
+  color: #263b39;
+}
+
+:root[data-theme="light"] .guide-create-input {
+  border-color: #d3ded5;
+  background: #f7faf7;
+  color: #263b39;
+}
+
+:root[data-theme="light"] .guide-create-error {
+  color: #9c3d40;
+}
+
 :root[data-theme="light"] .board-total,
 :root[data-theme="light"] .page-subtitle,
 :root[data-theme="light"] .subtle-count,
@@ -1490,8 +1593,18 @@ button.editable-title-display {
   .guide-nav-item {
     flex: 0 0 auto;
     width: auto;
+    min-width: 0;
+    max-width: 100%;
     min-height: 38px;
     padding: 0 10px;
+  }
+
+  .guide-nav-item .editable-title-display {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .content {
